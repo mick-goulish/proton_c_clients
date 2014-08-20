@@ -11,7 +11,11 @@ When you run the test, start the receiver first.
 
 The sender will print out a timestamp just before it sends 
 the first message.  The receiver will print out a timestamp 
-just after it sends the last message.
+just after it receives the last message.
+
+
+The sender and receiver are locked onto separate processors.
+( numbers 1 and 2. )
 
 
 Right now, the sender shuts down with an error
