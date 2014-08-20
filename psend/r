@@ -1,0 +1,3 @@
+#! /bin/bash
+
+taskset -c 2 ./psend 5000000 

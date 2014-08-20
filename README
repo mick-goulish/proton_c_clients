@@ -1,0 +1,25 @@
+
+Both the psend and precv directories have little build scripts
+called 'm'.  ( Stands for 'make', although they are not make files. )
+
+Both dirs also have little run scripts called ... wait for it ... 'r'.
+
+Both build scripts assume that your Proton is installed in /usr , not
+/usr/local .
+
+When you run the test, start the receiver first.
+
+The sender will print out a timestamp just before it sends 
+the first message.  The receiver will print out a timestamp 
+just after it sends the last message.
+
+
+Right now, the sender shuts down with an error
+message, because I am not shutting something down
+correctly.  Later.
+
+Also, the sender memory footprint grows rapidly, so 
+I can't do tests much bigger than the 5 million messages 
+that the run scripts call for right now.  Later.
+
+
