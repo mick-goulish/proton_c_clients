@@ -194,6 +194,8 @@ main ( int argc, char ** argv )
 
         if ( pn_delivery_writable(delivery) ) 
         {
+          // Send pre-settled message.
+          pn_delivery_settle ( delivery );
           pn_link_send ( link, message_data, data_size );
           pn_link_advance(link);
         }
@@ -201,7 +203,6 @@ main ( int argc, char ** argv )
         if ( pn_delivery_updated(delivery) ) 
         {
           pn_delivery_clear  ( delivery );
-          pn_delivery_settle ( delivery );
           if (--send_count <= 0 ) 
             pn_link_close ( link );
         }

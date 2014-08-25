@@ -111,6 +111,9 @@ main ( int argc, char ** argv )
   int  size     = 32;
   int  msg_size = 50;
   bool done     = false;
+  int  initial_credit   = 500,
+       new_credit       = 250,
+       low_credit_limit = 250;
 
   char const * host = "0.0.0.0";
   char const * port = "5672";
@@ -125,6 +128,13 @@ main ( int argc, char ** argv )
   pn_session_t    * session;
   pn_link_t       * link;
   pn_delivery_t   * delivery;
+
+  /*------------------------------------------------
+    The message data is what I actually send, after
+    Proton gets done messing with it.
+  ------------------------------------------------*/
+  char * message_data          = (char *) malloc ( MY_BUF_SIZE );
+  int    message_data_capacity = MY_BUF_SIZE;
 
 
   fprintf ( stderr, "drecv expecting %d messages.\n", expected );
@@ -153,13 +163,6 @@ main ( int argc, char ** argv )
 
       connection = pn_connector_connection ( connector );
 
-      /*------------------------------------------------
-        The message data is what I actually send, after
-        Proton gets done messing with it.
-      ------------------------------------------------*/
-      char * message_data          = (char *) malloc ( MY_BUF_SIZE );
-      int    message_data_capacity = MY_BUF_SIZE;
-
 
       /*=========================================================
         Open everything that is ready on the 
@@ -187,7 +190,7 @@ main ( int argc, char ** argv )
          pn_terminus_copy(pn_link_target(link), pn_link_remote_target(link));
          pn_link_open ( link );
          if ( pn_link_is_receiver(link) ) 
-           pn_link_flow ( link, 2000 );
+           pn_link_flow ( link, initial_credit );
        }
 
 
@@ -199,33 +202,36 @@ main ( int argc, char ** argv )
             delivery = pn_work_next ( delivery )
           )
       {
-        link = pn_delivery_link ( delivery );
-
         if ( pn_delivery_readable(delivery) ) 
         {
-          while ( 13 ) 
-          {
-            if ( pn_link_recv(link, message_data, msg_size) == PN_EOS) 
-            {
-              pn_link_advance ( link );
-              pn_delivery_update ( delivery, PN_ACCEPTED );
+          link = pn_delivery_link ( delivery );
+          while ( PN_EOS != pn_link_recv(link, message_data, MY_BUF_SIZE) )
+            ;
+          pn_link_advance ( link );
+          pn_delivery_update ( delivery, PN_ACCEPTED );
+          pn_delivery_settle ( delivery );
 
-              if ( ++ received >= expected )
-              {
-                sprintf ( info, "received %d messages", expected );
-                print_timestamp ( stderr, info );
-                done = true;
-              }
-              break;
-            } 
+
+          if ( ++ received >= expected )
+          {
+            sprintf ( info, "received %d messages", received );
+            print_timestamp ( stderr, info );
+            done = true;
           }
 
-          if ( pn_link_credit(link) < 1000 ) 
-            pn_link_flow ( link, 2000 );
-        } 
+          if ( ! (received % 5000000) )
+            fprintf ( stderr, "received: %d\n", received );
 
-        if ( pn_delivery_updated(delivery) )
-          pn_delivery_settle ( delivery );
+
+          if ( pn_link_credit(link) <= low_credit_limit ) 
+            pn_link_flow ( link, new_credit );
+        } 
+        else
+        {
+          // TODO
+          // Why am I getting writables?
+          // And what to do with them?
+        }
       } 
 
 
