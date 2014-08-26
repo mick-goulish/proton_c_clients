@@ -187,10 +187,12 @@ main ( int argc, char ** argv )
 
       connection = pn_connector_connection ( driver_connector );
 
-      delivery = pn_work_head(connection);
-      while ( delivery )
+      for ( delivery = pn_work_head(connection);
+            delivery;
+            delivery = pn_work_next(delivery)
+          )
       {
-        pn_link_t *link = pn_delivery_link(delivery);
+        pn_link_t * link = pn_delivery_link(delivery);
 
         if ( pn_delivery_writable(delivery) ) 
         {
@@ -198,27 +200,21 @@ main ( int argc, char ** argv )
           pn_delivery_settle ( delivery );
           pn_link_send ( link, message_data, data_size );
           pn_link_advance(link);
-        }
 
-        if ( pn_delivery_updated(delivery) ) 
-        {
-          pn_delivery_clear  ( delivery );
           if (--send_count <= 0 ) 
+          {
             pn_link_close ( link );
+            pn_connection_close ( connection );
+            break;
+          }
         }
-        delivery = pn_work_next(delivery);
       }
-
-      if ( send_count <= 0 ) 
-        pn_connection_close(connection);
-
-      if ( pn_connection_state(connection) == (PN_LOCAL_CLOSED | PN_REMOTE_CLOSED) )
-        done = true;
 
       if ( pn_connector_closed(driver_connector) ) 
       {
         pn_connection_free ( pn_connector_connection(driver_connector) );
         pn_connector_free ( driver_connector );
+        done = true;
       } 
       else 
         pn_connector_process(driver_connector);

@@ -118,7 +118,6 @@ main ( int argc, char ** argv )
   char const * host = "0.0.0.0";
   char const * port = "5672";
 
-  bool closed    = false;
   bool sasl_done = false;
 
   pn_driver_t     * driver;
@@ -129,10 +128,7 @@ main ( int argc, char ** argv )
   pn_link_t       * link;
   pn_delivery_t   * delivery;
 
-  /*------------------------------------------------
-    The message data is what I actually send, after
-    Proton gets done messing with it.
-  ------------------------------------------------*/
+
   char * message_data          = (char *) malloc ( MY_BUF_SIZE );
   int    message_data_capacity = MY_BUF_SIZE;
 
@@ -146,14 +142,14 @@ main ( int argc, char ** argv )
     exit ( 1 );
   }
 
-  while ( (! done) && (! closed) ) 
+  while ( ! done)
   {
     pn_driver_wait ( driver, -1 );
 
-    while ( (listener = pn_driver_listener(driver)) ) 
+    if ( (listener = pn_driver_listener(driver)) ) 
       pn_listener_accept( listener );
 
-    while ( (connector = pn_driver_connector(driver)) ) 
+    if ( (connector = pn_driver_connector(driver)) ) 
     {
       pn_connector_process ( connector );
 
@@ -219,6 +215,7 @@ main ( int argc, char ** argv )
             done = true;
           }
 
+          // a progress report for long tests.
           if ( ! (received % 5000000) )
             fprintf ( stderr, "received: %d\n", received );
 
@@ -259,7 +256,7 @@ main ( int argc, char ** argv )
       {
         pn_connection_free ( pn_connector_connection(connector) );
         pn_connector_free ( connector );
-        closed = true;
+        done = true;
       } 
       else 
         pn_connector_process(connector);
