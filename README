@@ -18,12 +18,6 @@ The sender and receiver are locked onto separate processors.
 ( numbers 1 and 2. )
 
 
-Right now, the sender shuts down with an error
-message, because I am not shutting something down
-correctly.  Later.
-
-Also, the sender memory footprint grows rapidly, so 
-I can't do tests much bigger than the 5 million messages 
-that the run scripts call for right now.  Later.
-
+The sender and receiver memory footprints grow relatively slowly 
+now, after I fixed a large dumb leak in my code.
 
