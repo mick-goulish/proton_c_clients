@@ -1,0 +1,23 @@
+
+psend locked onto proc 1,
+precv locked onto proc 3.
+
+credit strategy
+{
+  start at 200 
+  refresh by 100
+  at low water mark of 100
+}
+
+
+I saw 123,500 received messages per secod (size 50 bytes payload)
+on T-530 laptop.
+
+i.e. 247,000 transfers per second, over a test of 5 million messages.
+( averaged over 3 trials of test )
+
+
+I ran test with same parameters, but only 100,000 messages,
+to get callgrind data in this directory.
+
+
