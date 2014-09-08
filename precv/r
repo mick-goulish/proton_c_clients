@@ -1,3 +1,4 @@
 #! /bin/bash
 
+make precv
 taskset -c 1 ./precv 5000000
