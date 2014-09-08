@@ -26,8 +26,7 @@ void print_timestamp(FILE *fp, char const *label) {
 
 void print_data(FILE *fp, char const *str, int len) {
   fputc('|', fp);
-  int i;
-  for (i = 0; i < len; ++i) {
+  for (int i = 0; i < len; ++i) {
     unsigned char c = *str++;
     if (isprint(c)) {
       fputc(c, fp);
@@ -88,7 +87,6 @@ int main(int argc, char **argv) {
   pn_connection_t *connection;
   pn_link_t *send_link;
   pn_session_t *session;
-  pn_delivery_t *delivery;
 
   /*------------------------------------------------
     The message content is what I want to send.
@@ -146,7 +144,7 @@ int main(int argc, char **argv) {
 
       connection = pn_connector_connection(driver_connector);
 
-      for (delivery = pn_work_head(connection);
+      for (pn_delivery_t *delivery = pn_work_head(connection);
            delivery; delivery = pn_work_next(delivery)) {
         pn_link_t *link = pn_delivery_link(delivery);
 

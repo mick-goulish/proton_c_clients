@@ -26,8 +26,7 @@ void print_timestamp(FILE *fp, char const *label) {
 
 void print_data(FILE *fp, char const *str, int len) {
   fputc('|', fp);
-  int i;
-  for (i = 0; i < len; ++i) {
+  for (int i = 0; i < len; ++i) {
     unsigned char c = *str++;
     if (isprint(c)) {
       fputc(c, fp);
@@ -88,9 +87,6 @@ int main(int argc, char **argv) {
   pn_listener_t *listener;
   pn_connector_t *connector;
   pn_connection_t *connection;
-  pn_session_t *session;
-  pn_link_t *link;
-  pn_delivery_t *delivery;
 
   char *message_data = (char *) malloc(MY_BUF_SIZE);
 
@@ -131,12 +127,13 @@ int main(int argc, char **argv) {
         pn_connection_open(connection);
       }
 
-      for (session = pn_session_head(connection, hes_ready_im_not);
-           session; session = pn_session_next(session, hes_ready_im_not)) {
+      for (pn_session_t *session =
+             pn_session_head(connection, hes_ready_im_not); session;
+           session = pn_session_next(session, hes_ready_im_not)) {
         pn_session_open(session);
       }
 
-      for (link = pn_link_head(connection, hes_ready_im_not);
+      for (pn_link_t *link = pn_link_head(connection, hes_ready_im_not);
            link; link = pn_link_next(link, hes_ready_im_not)) {
         pn_terminus_copy(pn_link_source(link), pn_link_remote_source(link));
         pn_terminus_copy(pn_link_target(link), pn_link_remote_target(link));
@@ -149,10 +146,10 @@ int main(int argc, char **argv) {
       /*==========================================================
         Get all available deliveries.
         ==========================================================*/
-      for (delivery = pn_work_head(connection);
+      for (pn_delivery_t *delivery = pn_work_head(connection);
            delivery; delivery = pn_work_next(delivery)) {
         if (pn_delivery_readable(delivery)) {
-          link = pn_delivery_link(delivery);
+          pn_link_t *link = pn_delivery_link(delivery);
           while (PN_EOS != pn_link_recv(link, message_data, MY_BUF_SIZE));
           pn_link_advance(link);
           pn_delivery_update(delivery, PN_ACCEPTED);
@@ -188,14 +185,15 @@ int main(int argc, char **argv) {
         pn_connection_close(connection);
       }
 
-      for (session = pn_session_head(connection, active_here_closed_there);
-           session;
+      for (pn_session_t *session =
+             pn_session_head(connection, active_here_closed_there); session;
            session = pn_session_next(session, active_here_closed_there)) {
         pn_session_close(session);
       }
 
-      for (link = pn_link_head(connection, active_here_closed_there);
-           link; link = pn_link_next(link, active_here_closed_there)) {
+      for (pn_link_t *link =
+             pn_link_head(connection, active_here_closed_there); link;
+           link = pn_link_next(link, active_here_closed_there)) {
         pn_link_close(link);
       }
 
