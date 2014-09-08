@@ -9,15 +9,7 @@
 #include <proton/driver.h>
 #include <proton/message.h>
 
-
-
-
-
 #define MY_BUF_SIZE  1000
-
-
-
-
 
 void
 print_timestamp ( FILE * fp, char const * label )
@@ -35,10 +27,6 @@ print_timestamp ( FILE * fp, char const * label )
   fprintf ( fp, "time : %d.%.6ld : %s\n", seconds_today, tv.tv_usec, label );
 }
 
-
-
-
-
 void
 print_data ( FILE * fp, char const * str, int len )
 {
@@ -54,10 +42,6 @@ print_data ( FILE * fp, char const * str, int len )
   }
   fputs ( "|\n", fp );
 }
-
-
-
-
 
 bool
 get_sasl_over_with ( pn_connector_t * connector )
@@ -97,10 +81,6 @@ get_sasl_over_with ( pn_connector_t * connector )
   
   return true;
 }
-
-
-
-
 
 int 
 main ( int argc, char ** argv )
@@ -267,8 +247,3 @@ main ( int argc, char ** argv )
 
   return 0;
 }
-
-
-
-
-

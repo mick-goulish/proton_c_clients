@@ -9,11 +9,7 @@
 #include <proton/driver.h>
 #include <proton/message.h>
 
-
-
 #define MY_BUF_SIZE 1000
-
-
 
 void
 print_timestamp ( FILE * fp, char const * label )
@@ -31,10 +27,6 @@ print_timestamp ( FILE * fp, char const * label )
   fprintf ( fp, "time : %d.%.6ld : %s\n", seconds_today, tv.tv_usec, label );
 }
 
-
-
-
-
 void
 print_data ( FILE * fp, char const * str, int len )
 {
@@ -50,10 +42,6 @@ print_data ( FILE * fp, char const * str, int len )
   }
   fputs ( "|\n", fp );
 }
-
-
-
-
 
 bool
 get_sasl_over_with ( pn_connector_t * driver_connector )
@@ -95,9 +83,6 @@ get_sasl_over_with ( pn_connector_t * driver_connector )
   return true;
 }
 
-
-
-
 int 
 main ( int argc, char ** argv )
 {
@@ -122,7 +107,6 @@ main ( int argc, char ** argv )
   pn_session_t    * session;
   pn_delivery_t   * delivery;
 
-
   /*------------------------------------------------
     The message content is what I want to send.
   ------------------------------------------------*/
@@ -141,7 +125,6 @@ main ( int argc, char ** argv )
                                                    message_content,
                                                    msg_size
                                                  );
-
 
   /*----------------------------------------------------
     Get everything set up.
@@ -168,7 +151,6 @@ main ( int argc, char ** argv )
   sprintf ( str, "client start: sending %d messages", send_count );
   print_timestamp ( stderr, str );
 
-
   while ( ! done ) 
   {
     sprintf ( str, "%x", delivery_count );
@@ -176,7 +158,6 @@ main ( int argc, char ** argv )
     ++ delivery_count;
 
     pn_driver_wait(driver, -1);
-
 
     while ( (driver_connector = pn_driver_connector(driver)) ) 
     {
@@ -225,8 +206,3 @@ main ( int argc, char ** argv )
 
   return 0;
 }
-
-
-
-
-
