@@ -76,8 +76,6 @@ int main(int argc, char **argv) {
   char info[1000];
   int expected = (argc > 1) ? atoi(argv[1]) : 100000;
   int received = 0;
-  int size = 32;
-  int msg_size = 50;
   bool done = false;
   int initial_credit = 500, new_credit = 250, low_credit_limit = 250;
 
@@ -95,7 +93,6 @@ int main(int argc, char **argv) {
   pn_delivery_t *delivery;
 
   char *message_data = (char *) malloc(MY_BUF_SIZE);
-  int message_data_capacity = MY_BUF_SIZE;
 
   fprintf(stderr, "drecv expecting %d messages.\n", expected);
   driver = pn_driver();

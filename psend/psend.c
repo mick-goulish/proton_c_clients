@@ -78,11 +78,8 @@ int main(int argc, char **argv) {
 
   int send_count = (argc > 1) ? atoi(argv[1]) : 100000;
   int delivery_count = 0;
-  int size = 32;
   bool done = false;
-  bool sasl_done = false;
   int msg_size = 50;
-  int sent_count = 0;
   char str[100];
 
   pn_driver_t *driver;
@@ -97,7 +94,6 @@ int main(int argc, char **argv) {
     The message content is what I want to send.
     ------------------------------------------------*/
   char *message_content = (char *) malloc(MY_BUF_SIZE);
-  int message_content_capacity = MY_BUF_SIZE;
   memcpy(message_content, "Hello, Receiver!", 16);
 
   /*------------------------------------------------
@@ -105,7 +101,6 @@ int main(int argc, char **argv) {
     Proton gets done messing with it.
     ------------------------------------------------*/
   char *message_data = (char *) malloc(MY_BUF_SIZE);
-  int message_data_capacity = MY_BUF_SIZE;
   size_t data_size = pn_message_data(message_data,
                                      MY_BUF_SIZE,
                                      message_content,
