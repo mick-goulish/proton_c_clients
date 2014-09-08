@@ -7,14 +7,14 @@ LDFLAGS=$(shell pkg-config --libs libqpid-proton)
 
 default: precv psend
 
-%.o: %.c
+%.o: %.c %.h
 	$(CC) -c -o $@ $(CFLAGS) $<
 
-precv: precv.o
-	$(CC) -o precv $(LDFLAGS) precv.o
+precv: precv.o common.o
+	$(CC) -o precv $(LDFLAGS) precv.o common.o
 
-psend: psend.o
-	$(CC) -o psend $(LDFLAGS) psend.o
+psend: psend.o common.o
+	$(CC) -o psend $(LDFLAGS) psend.o common.o
 
 clean:
 	rm -f *.o

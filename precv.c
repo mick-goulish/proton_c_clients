@@ -1,40 +1,12 @@
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <proton/driver.h>
 #include <proton/message.h>
 
-#include <sys/time.h>
-
-#define MY_BUF_SIZE  1000
-
-void print_timestamp(FILE *fp, char const *label) {
-  struct timeval tv;
-  gettimeofday(&tv, 0);
-  struct tm *timeinfo = localtime(&tv.tv_sec);
-
-  int seconds_today = 3600 * timeinfo->tm_hour +
-    60 * timeinfo->tm_min + timeinfo->tm_sec;
-
-  fprintf(fp, "time : %d.%.6ld : %s\n", seconds_today, tv.tv_usec, label);
-}
-
-void print_data(FILE *fp, char const *str, int len) {
-  fputc('|', fp);
-  for (int i = 0; i < len; ++i) {
-    unsigned char c = *str++;
-    if (isprint(c)) {
-      fputc(c, fp);
-    } else {
-      fprintf(fp, "\\0x%.2X", c);
-    }
-  }
-  fputs("|\n", fp);
-}
+#include "common.h"
 
 bool get_sasl_over_with(pn_connector_t *connector) {
   pn_sasl_t *sasl = pn_connector_sasl(connector);
