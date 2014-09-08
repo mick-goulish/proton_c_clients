@@ -5,12 +5,19 @@ CFLAGS+=$(shell pkg-config --cflags libqpid-proton)
 
 LDFLAGS=$(shell pkg-config --libs libqpid-proton)
 
-precv: precv.c
-	$(CC) -o precv $(CFLAGS) $(LDFLAGS) precv.c
+default: precv psend
 
-psend: psend.c
-	$(CC) -o psend $(CFLAGS) $(LDFLAGS) psend.c
+%.o: %.c
+	$(CC) -c -o $@ $(CFLAGS) $<
+
+precv: precv.o
+	$(CC) -o precv $(LDFLAGS) precv.o
+
+psend: psend.o
+	$(CC) -o psend $(LDFLAGS) psend.o
 
 clean:
 	rm -f *.o
-	rm -f precv
+	rm -f precv psend
+
+all: default
