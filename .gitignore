@@ -1,0 +1,3 @@
+*.o
+precv/precv
+psend/psend

@@ -1,11 +1,4 @@
-
-Both the psend and precv directories have little build scripts
-called 'm'.  ( Stands for 'make', although they are not make files. )
-
-Both dirs also have little run scripts called ... wait for it ... 'r'.
-
-Both build scripts assume that your Proton is installed in /usr , not
-/usr/local .
+The run script is called ... wait for it ... 'r'.
 
 When you run the test, start the receiver first.
 
