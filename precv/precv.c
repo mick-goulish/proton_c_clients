@@ -13,10 +13,8 @@
 
 void print_timestamp(FILE *fp, char const *label) {
   struct timeval tv;
-  struct tm *timeinfo;
-
   gettimeofday(&tv, 0);
-  timeinfo = localtime(&tv.tv_sec);
+  struct tm *timeinfo = localtime(&tv.tv_sec);
 
   int seconds_today = 3600 * timeinfo->tm_hour +
     60 * timeinfo->tm_min + timeinfo->tm_sec;
@@ -44,7 +42,6 @@ bool get_sasl_over_with(pn_connector_t *connector) {
     switch (pn_sasl_state(sasl)) {
     case PN_SASL_IDLE:
       return false;
-      break;
 
     case PN_SASL_CONF:
       pn_sasl_mechanisms(sasl, "PLAIN ANONYMOUS");
@@ -64,7 +61,6 @@ bool get_sasl_over_with(pn_connector_t *connector) {
 
     case PN_SASL_FAIL:
       return false;
-      break;
     }
   }
 
@@ -75,7 +71,6 @@ int main(int argc, char **argv) {
   char info[1000];
   int expected = (argc > 1) ? atoi(argv[1]) : 100000;
   int received = 0;
-  bool done = false;
   int initial_credit = 500, new_credit = 250, low_credit_limit = 250;
 
   char const *host = "0.0.0.0";
@@ -83,28 +78,26 @@ int main(int argc, char **argv) {
 
   bool sasl_done = false;
 
-  pn_driver_t *driver;
-  pn_listener_t *listener;
-  pn_connector_t *connector;
-  pn_connection_t *connection;
-
   char *message_data = (char *) malloc(MY_BUF_SIZE);
 
   fprintf(stderr, "drecv expecting %d messages.\n", expected);
-  driver = pn_driver();
+  pn_driver_t *driver = pn_driver();
 
   if (!pn_listener(driver, host, port, 0)) {
     fprintf(stderr, "listener creation failed.\n");
     exit(1);
   }
 
+  bool done = false;
   while (!done) {
     pn_driver_wait(driver, -1);
 
+    pn_listener_t *listener;
     if ((listener = pn_driver_listener(driver))) {
       pn_listener_accept(listener);
     }
 
+    pn_connector_t *connector;
     if ((connector = pn_driver_connector(driver))) {
       pn_connector_process(connector);
 
@@ -114,8 +107,8 @@ int main(int argc, char **argv) {
         }
       }
 
+      pn_connection_t *connection;
       connection = pn_connector_connection(connector);
-
 
       /*=========================================================
         Open everything that is ready on the 

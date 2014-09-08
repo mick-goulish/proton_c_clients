@@ -13,10 +13,8 @@
 
 void print_timestamp(FILE *fp, char const *label) {
   struct timeval tv;
-  struct tm *timeinfo;
-
   gettimeofday(&tv, 0);
-  timeinfo = localtime(&tv.tv_sec);
+  struct tm *timeinfo = localtime(&tv.tv_sec);
 
   int seconds_today = 3600 * timeinfo->tm_hour +
     60 * timeinfo->tm_min + timeinfo->tm_sec;
@@ -77,16 +75,8 @@ int main(int argc, char **argv) {
 
   int send_count = (argc > 1) ? atoi(argv[1]) : 100000;
   int delivery_count = 0;
-  bool done = false;
   int msg_size = 50;
   char str[100];
-
-  pn_driver_t *driver;
-  pn_connector_t *connector;
-  pn_connector_t *driver_connector;
-  pn_connection_t *connection;
-  pn_link_t *send_link;
-  pn_session_t *session;
 
   /*------------------------------------------------
     The message content is what I want to send.
@@ -99,25 +89,23 @@ int main(int argc, char **argv) {
     Proton gets done messing with it.
     ------------------------------------------------*/
   char *message_data = (char *) malloc(MY_BUF_SIZE);
-  size_t data_size = pn_message_data(message_data,
-                                     MY_BUF_SIZE,
-                                     message_content,
-                                     msg_size);
+  size_t data_size =
+    pn_message_data(message_data, MY_BUF_SIZE, message_content, msg_size);
 
   /*----------------------------------------------------
     Get everything set up.
     We will have a single connector, a single 
     connection, a single session, and a single link.
     ----------------------------------------------------*/
-  driver = pn_driver();
-  connector = pn_connector(driver, host, port, 0);
+  pn_driver_t *driver = pn_driver();
+  pn_connector_t *connector = pn_connector(driver, host, port, 0);
   get_sasl_over_with(connector);
-  connection = pn_connection();
+  pn_connection_t *connection = pn_connection();
   pn_connector_set_connection(connector, connection);
-  session = pn_session(connection);
+  pn_session_t *session = pn_session(connection);
   pn_connection_open(connection);
   pn_session_open(session);
-  send_link = pn_sender(session, "sender");
+  pn_link_t *send_link = pn_sender(session, "sender");
   pn_terminus_set_address(pn_link_target(send_link), addr);
   pn_link_open(send_link);
 
@@ -129,6 +117,7 @@ int main(int argc, char **argv) {
   sprintf(str, "client start: sending %d messages", send_count);
   print_timestamp(stderr, str);
 
+  bool done = false;
   while (!done) {
     sprintf(str, "%x", delivery_count);
     pn_delivery(send_link, pn_dtag(str, strlen(str)));
@@ -136,6 +125,7 @@ int main(int argc, char **argv) {
 
     pn_driver_wait(driver, -1);
 
+    pn_connector_t *driver_connector;
     while ((driver_connector = pn_driver_connector(driver))) {
       pn_connector_process(driver_connector);
       if (pn_connector_closed(driver_connector)) {
