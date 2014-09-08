@@ -1,13 +1,14 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
-#include <sys/time.h>
+#include <unistd.h>
 
 #include <proton/driver.h>
 #include <proton/message.h>
+
+#include <sys/time.h>
 
 #define MY_BUF_SIZE 1000
 
