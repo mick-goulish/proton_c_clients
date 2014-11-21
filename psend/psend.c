@@ -153,16 +153,6 @@ int
 main ( )
 {
   char const * addr = "queue";
-
-  //-------------  home, router --------------------
-  //char const * host = "10.10.48.223";
-  //char const * port = "20001";
-
-  //-------------- router, mrg29 -------------------
-  //char const * host = "10.16.44.234";
-  //char const * port = "20001";
-
-  //------------ normal -----------------
   char const * host = "0.0.0.0";
   char const * port = "5801";
 
