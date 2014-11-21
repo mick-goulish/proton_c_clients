@@ -153,8 +153,9 @@ int
 main ( )
 {
   char const * addr = "queue";
-  char const * host = "0.0.0.0";
-  char const * port = "5801";
+
+  char const * host = "10.16.44.238";
+  char const * port = "5671";
 
   uint64_t to_send_count = 1000 * 1000 * 1000;  
   to_send_count *= 10;
@@ -166,6 +167,7 @@ main ( )
   int  msg_size       = 50;
   int  sent_count     = 0;
   char str [ 100 ];
+  int const n_links = 5;
 
 
   pn_driver_t     * driver;
@@ -173,15 +175,15 @@ main ( )
   pn_connector_t  * driver_connector;
   pn_connection_t * connection;
   pn_collector_t  * collector;
-  pn_link_t       * send_link;
+  pn_link_t       * links [ n_links ];
   pn_session_t    * session;
   pn_event_t      * event;
   pn_delivery_t   * delivery;
 
 
-  char const * message = "don't send to broker or router!  Not actual AMQP message!  But same size as a small one -- 100 bytes";
-  int const message_length = strlen(message);
-
+  int const message_length = 600;
+  char * message = (char *) malloc(message_length);
+  memset ( message, 13, message_length );
 
   /*----------------------------------------------------
     Get everything set up.
@@ -200,9 +202,15 @@ main ( )
   session = pn_session ( connection );
   pn_connection_open ( connection );
   pn_session_open ( session );
-  send_link = pn_sender ( session, "sender" );
-  pn_terminus_set_address ( pn_link_target(send_link), addr );
-  pn_link_open ( send_link );
+
+  for ( int i = 0; i < n_links; ++ i )
+  {
+    char name[100];
+    sprintf ( name, "tvc_15_%d", i );
+    links[i] = pn_sender ( session, name );
+    pn_terminus_set_address ( pn_link_target(links[i]), addr );
+    pn_link_open ( links[i] );
+  }
 
 
   /*-----------------------------------------------------------
@@ -234,16 +242,17 @@ main ( )
         {
           case PN_LINK_FLOW:
           {
-            int credit = pn_link_credit ( send_link );
+            pn_link_t * link = pn_event_link ( event );
+            int credit = pn_link_credit ( link );
 
             while ( credit > 0 )
             {
               sprintf ( str, "%x", delivery_count ++ );
-              delivery = pn_delivery ( send_link, pn_dtag(str, strlen(str)) );
+              delivery = pn_delivery ( link, pn_dtag(str, strlen(str)) );
               pn_delivery_settle ( delivery );
-              pn_link_send ( send_link, message, message_length );
-              pn_link_advance ( send_link );
-              credit = pn_link_credit ( send_link );
+              pn_link_send ( link, message, message_length );
+              pn_link_advance ( link );
+              credit = pn_link_credit ( link );
 
               if ( delivery_count >= to_send_count )
               {

@@ -121,11 +121,11 @@ main (  )
   int      size     = 32;
   int      msg_size = 50;
 
-  char const * host = "0.0.0.0";
-  char const * port = "5801";
+  char const * host = "10.16.44.238";
+  char const * port = "5671";
 
-  int const initial_flow   = 600;
-  int const flow_increment = 300;
+  int const initial_flow   = 400;
+  int const flow_increment = 200;
 
 
 
@@ -161,8 +161,8 @@ main (  )
   FILE * output_fp;
 
 
-  //output_fp = fopen ( "./precv.output", "w" );
-  output_fp = stderr;
+  output_fp = fopen ( "./precv.output", "w" );
+  //output_fp = stderr;
 
 
   driver = pn_driver ( );
@@ -257,36 +257,49 @@ main (  )
             ++ delivery_count; 
 
             delivery = pn_event_delivery ( event );
-            // don't bother updating.  they're pre-settled.
-            // pn_delivery_update ( delivery, PN_ACCEPTED );
-            pn_delivery_settle ( delivery );
 
-            credit = pn_link_credit ( link );
-
-            if ( delivery_count >= expected_deliveries )
+            if ( pn_delivery_readable ( delivery ) )
             {
-              fprintf ( output_fp, "Got %d deliveries.\n", delivery_count );
-              goto all_done;
-            }
+              if ( ! (delivery_count % report_frequency) )
+              {
+                char incoming [ 1000 ];
+                pn_link_t * delivery_link = pn_delivery_link ( delivery );
+                int received_bytes = pn_delivery_pending ( delivery );
+                pn_link_recv ( delivery_link, incoming, 1000 );
+                fprintf ( stderr, "MDEBUG received bytes: %d\n", received_bytes );
+              }
 
-            if ( ! (delivery_count % report_frequency) )
-            {
-              this_time = get_time();
-              time_diff = this_time - last_time;
+              // don't bother updating.  they're pre-settled.
+              // pn_delivery_update ( delivery, PN_ACCEPTED );
+              pn_delivery_settle ( delivery );
 
-              print_timestamp_like_a_normal_person ( output_fp );
-              fprintf ( output_fp, 
-                        "deliveries: %" PRIu64 "  time: %.3lf\n", 
-                        delivery_count,
-                        time_diff
-                      );
-              fflush ( output_fp );
-              last_time = this_time;
-            }
+              credit = pn_link_credit ( link );
 
-            if ( credit <= flow_increment )
-            {
-              pn_link_flow ( link, flow_increment );
+              if ( delivery_count >= expected_deliveries )
+              {
+                fprintf ( output_fp, "Got %d deliveries.\n", delivery_count );
+                goto all_done;
+              }
+
+              if ( ! (delivery_count % report_frequency) )
+              {
+                this_time = get_time();
+                time_diff = this_time - last_time;
+
+                print_timestamp_like_a_normal_person ( output_fp );
+                fprintf ( output_fp, 
+                          "deliveries: %" PRIu64 "  time: %.3lf\n", 
+                          delivery_count,
+                          time_diff
+                        );
+                fflush ( output_fp );
+                last_time = this_time;
+              }
+
+              if ( credit <= flow_increment )
+              {
+                pn_link_flow ( link, flow_increment );
+              }
             }
           break;
 
