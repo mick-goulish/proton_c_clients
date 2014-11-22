@@ -155,7 +155,7 @@ main ( )
   char const * addr = "queue";
 
   char const * host = "10.16.44.238";
-  char const * port = "5671";
+  char const * port = "5672";
 
   uint64_t to_send_count = 1000 * 1000 * 1000;  
   to_send_count *= 10;
@@ -181,7 +181,7 @@ main ( )
   pn_delivery_t   * delivery;
 
 
-  int const message_length = 600;
+  int const message_length = 300;
   char * message = (char *) malloc(message_length);
   memset ( message, 13, message_length );
 
@@ -249,8 +249,8 @@ main ( )
             {
               sprintf ( str, "%x", delivery_count ++ );
               delivery = pn_delivery ( link, pn_dtag(str, strlen(str)) );
-              pn_delivery_settle ( delivery );
               pn_link_send ( link, message, message_length );
+              pn_delivery_settle ( delivery );
               pn_link_advance ( link );
               credit = pn_link_credit ( link );
 

@@ -122,10 +122,10 @@ main (  )
   int      msg_size = 50;
 
   char const * host = "10.16.44.238";
-  char const * port = "5671";
+  char const * port = "5672";
 
-  int const initial_flow   = 400;
-  int const flow_increment = 200;
+  int const initial_flow   = 600;
+  int const flow_increment = 300;
 
 
 
@@ -254,51 +254,55 @@ main (  )
 
           case PN_DELIVERY:
             link = pn_event_link ( event );
-            ++ delivery_count; 
-
             delivery = pn_event_delivery ( event );
 
             if ( pn_delivery_readable ( delivery ) )
             {
-              if ( ! (delivery_count % report_frequency) )
+              if ( ! pn_delivery_partial ( delivery ) )
               {
-                char incoming [ 1000 ];
-                pn_link_t * delivery_link = pn_delivery_link ( delivery );
-                int received_bytes = pn_delivery_pending ( delivery );
-                pn_link_recv ( delivery_link, incoming, 1000 );
-                fprintf ( stderr, "MDEBUG received bytes: %d\n", received_bytes );
-              }
+                ++ delivery_count; 
+                /*
+                if ( ! (delivery_count % report_frequency) )
+                {
+                  char incoming [ 1000 ];
+                  pn_link_t * delivery_link = pn_delivery_link ( delivery );
+                  int received_bytes = pn_delivery_pending ( delivery );
+                  pn_link_recv ( delivery_link, incoming, 1000 );
+                  fprintf ( stderr, "MDEBUG received bytes: %d\n", received_bytes );
+                }
+                */
 
-              // don't bother updating.  they're pre-settled.
-              // pn_delivery_update ( delivery, PN_ACCEPTED );
-              pn_delivery_settle ( delivery );
+                // don't bother updating.  they're pre-settled.
+                // pn_delivery_update ( delivery, PN_ACCEPTED );
+                pn_delivery_settle ( delivery );
 
-              credit = pn_link_credit ( link );
+                credit = pn_link_credit ( link );
 
-              if ( delivery_count >= expected_deliveries )
-              {
-                fprintf ( output_fp, "Got %d deliveries.\n", delivery_count );
-                goto all_done;
-              }
+                if ( delivery_count >= expected_deliveries )
+                {
+                  fprintf ( output_fp, "Got %d deliveries.\n", delivery_count );
+                  goto all_done;
+                }
 
-              if ( ! (delivery_count % report_frequency) )
-              {
-                this_time = get_time();
-                time_diff = this_time - last_time;
+                if ( ! (delivery_count % report_frequency) )
+                {
+                  this_time = get_time();
+                  time_diff = this_time - last_time;
 
-                print_timestamp_like_a_normal_person ( output_fp );
-                fprintf ( output_fp, 
-                          "deliveries: %" PRIu64 "  time: %.3lf\n", 
-                          delivery_count,
-                          time_diff
-                        );
-                fflush ( output_fp );
-                last_time = this_time;
-              }
+                  print_timestamp_like_a_normal_person ( output_fp );
+                  fprintf ( output_fp, 
+                            "deliveries: %" PRIu64 "  time: %.3lf\n", 
+                            delivery_count,
+                            time_diff
+                          );
+                  fflush ( output_fp );
+                  last_time = this_time;
+                }
 
-              if ( credit <= flow_increment )
-              {
-                pn_link_flow ( link, flow_increment );
+                if ( credit <= flow_increment )
+                {
+                  pn_link_flow ( link, flow_increment );
+                }
               }
             }
           break;
