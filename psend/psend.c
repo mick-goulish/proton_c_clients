@@ -181,7 +181,7 @@ main ( )
   pn_delivery_t   * delivery;
 
 
-  int const message_length = 300;
+  int const message_length = 100;
   char * message = (char *) malloc(message_length);
   memset ( message, 13, message_length );
 
@@ -213,11 +213,6 @@ main ( )
   }
 
 
-  /*-----------------------------------------------------------
-    For my speed tests, I do not want to count setup time.
-    Start timing here.  The receiver will print out a similar
-    timestamp when he receives the final message.
-  -----------------------------------------------------------*/
   fprintf ( stderr, "psend start: sending %llu messages.\n", to_send_count );
 
 
@@ -249,6 +244,8 @@ main ( )
             {
               sprintf ( str, "%x", delivery_count ++ );
               delivery = pn_delivery ( link, pn_dtag(str, strlen(str)) );
+              // Must do the settle *after* the send! 
+              // Or you'll be shooting blanks.
               pn_link_send ( link, message, message_length );
               pn_delivery_settle ( delivery );
               pn_link_advance ( link );
