@@ -113,21 +113,24 @@ print_timestamp_like_a_normal_person ( FILE * fp )
 
 
 int 
-main (  )
+main ( int argc, char ** argv  ) 
 {
   char info[1000];
 
   uint64_t received = 0;
-  int      size     = 32;
-  int      msg_size = 50;
 
-  char const * host = "10.16.44.238";
-  char const * port = "5672";
+  char host [1000];
+  char port [1000];
 
   int const initial_flow   = 400;
-  int const flow_increment = 200;
+  int const flow_increment = 20;
 
+  int const report_frequency  = 200000;
+  int64_t expected_deliveries = 2000000,
+          delivery_count      = 0;
 
+  strcpy ( host, "10.16.44.238" );
+  strcpy ( port, "5672" );
 
   pn_driver_t     * driver;
   pn_listener_t   * listener;
@@ -141,15 +144,6 @@ main (  )
   pn_link_t       * link;
   pn_delivery_t   * delivery;
 
-  int const report_frequency = 200000;
-
-  uint64_t delivery_count      = 0,
-           expected_deliveries = 1000 * 1000 * 1000;
-
-  expected_deliveries *= 10;
-  // TEMP
-  expected_deliveries = 2000000;
-
 
   double last_time,
          this_time,
@@ -158,13 +152,61 @@ main (  )
   char * message_data          = (char *) malloc ( MY_BUF_SIZE );
   int    message_data_capacity = MY_BUF_SIZE;
 
-  int credit = 0;
-
   FILE * output_fp;
-
-
   //output_fp = fopen ( "./precv.output", "w" );
   output_fp = stderr;
+
+
+  for ( int i = 1; i < argc; ++ i )
+  {
+    if ( ! strcmp ( "--host", argv[i] ) )
+    {
+      strcpy ( host, argv[i+1] );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--port", argv[i] ) )
+    {
+      strcpy ( port, argv[i+1] );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--messages", argv[i] ) )
+    {
+      sscanf ( argv [ i+1 ], "%" SCNd64 , & expected_deliveries );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--report_frequency", argv[i] ) )
+    {
+      sscanf ( argv [ i+1 ], "%d", & report_frequency );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--initial_flow", argv[i] ) )
+    {
+      sscanf ( argv [ i+1 ], "%d", & initial_flow );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--flow_increment", argv[i] ) )
+    {
+      sscanf ( argv [ i+1 ], "%d", & flow_increment );
+      ++ i;
+    }
+    else
+    {
+      fprintf ( output_fp, "unknown arg |%s|", argv[i] );
+    }
+  }
+
+
+  fprintf ( output_fp, "host                |%s|\n", host );
+  fprintf ( output_fp, "port                |%s|\n", port );
+  fprintf ( output_fp, "expected_deliveries %" PRId64 "\n", expected_deliveries );
+  fprintf ( output_fp, "report_frequency    %d\n", report_frequency );
+  fprintf ( output_fp, "initial_flow        %d\n", initial_flow );
+  fprintf ( output_fp, "flow_increment      %d\n", flow_increment );
 
 
   driver = pn_driver ( );
@@ -186,8 +228,6 @@ main (  )
   }
 
   connection = pn_connection ( );
-
-
   collector  = pn_collector  ( );
   pn_connection_collect ( connection, collector );
   pn_connector_set_connection ( connector, connection );
@@ -217,7 +257,7 @@ main (  )
       {
         ++ event_count;
         pn_event_type_t event_type = pn_event_type ( event );
-        //fprintf ( stderr, "MDEBUG precv event: %s\n", pn_event_type_name(event_type));
+        //fprintf ( output_fp, "precv event: %s\n", pn_event_type_name(event_type));
 
 
         switch ( event_type )
@@ -270,7 +310,7 @@ main (  )
                   pn_link_t * delivery_link = pn_delivery_link ( delivery );
                   int received_bytes = pn_delivery_pending ( delivery );
                   pn_link_recv ( delivery_link, incoming, 1000 );
-                  fprintf ( stderr, "MDEBUG received bytes: %d\n", received_bytes );
+                  fprintf ( output_fp, "MDEBUG received bytes: %d\n", received_bytes );
                 }
                 */
 
@@ -278,12 +318,12 @@ main (  )
                 // pn_delivery_update ( delivery, PN_ACCEPTED );
                 pn_delivery_settle ( delivery );
 
-                credit = pn_link_credit ( link );
+                int credit = pn_link_credit ( link );
 
                 if ( delivery_count >= expected_deliveries )
                 {
                   fprintf ( output_fp, "Got all %d deliveries.\n", delivery_count );
-                  fprintf ( stderr, "MDEBUG goto all_done\n" );
+                  fprintf ( output_fp, "MDEBUG goto all_done\n" );
                   goto all_done;
                 }
 
@@ -317,11 +357,12 @@ main (  )
 
 
           default:
-            fprintf ( stderr, 
-                      "MDEBUG precv unhandled event: %s\n", 
+            /*
+            fprintf ( output_fp, 
+                      "precv unhandled event: %s\n", 
                       pn_event_type_name(event_type)
                     );
-
+            */
           break;
         }
 
@@ -335,7 +376,6 @@ main (  )
 all_done:
   pn_session_close ( session );
   pn_connection_close ( connection );
-  fprintf ( stderr, "MDEBUG precv finished.\n" );
   fclose ( output_fp );
   return 0;
 }

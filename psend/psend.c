@@ -30,6 +30,9 @@
 #include <ctype.h>
 #include <time.h>
 #include <sys/time.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 
 #include <proton/connection.h>
 #include <proton/delivery.h>
@@ -150,41 +153,98 @@ get_time ( )
 
 
 int 
-main ( )
+main ( int argc, char ** argv )
 {
-  char const * addr = "queue";
+  char addr [ 1000 ];
+  char host [ 1000 ];
+  char port [ 1000 ];
 
-  char const * host = "10.16.44.238";
-  char const * port = "5672";
+  uint64_t messages       = 2000000,
+           delivery_count = 0;
 
-  uint64_t to_send_count = 1000 * 1000 * 1000;  
-  to_send_count *= 10;
-  to_send_count = 2000000;
+  int message_length = 100;
 
-  uint64_t  delivery_count = 0;
-  int  size           = 32;
   bool done           = false;
   bool sasl_done      = false;
-  int  msg_size       = 50;
   int  sent_count     = 0;
-  char str [ 100 ];
-  int const n_links = 5;
+  int  n_links        = 5;
+  int const max_links = 100;
 
+  strcpy ( addr, "queue" );
+  strcpy ( host, "10.16.44.238" );
+  strcpy ( port, "5672" );
+
+  FILE * output_fp;
+  //output_fp = fopen ( "./psend.output", "w" );
+  output_fp = stderr;
+
+
+  for ( int i = 1; i < argc; ++ i )
+  {
+    if ( ! strcmp ( "--host", argv[i] ) )
+    {
+      strcpy ( host, argv[i+1] );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--port", argv[i] ) )
+    {
+      strcpy ( port, argv[i+1] );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--messages", argv[i] ) )
+    {
+      sscanf ( argv [ i+1 ], "%" SCNd64 , & messages );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--message_length", argv[i] ) )
+    {
+      sscanf ( argv [ i+1 ], "%d", & message_length );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--n_links", argv[i] ) )
+    {
+      sscanf ( argv [ i+1 ], "%d", & n_links );
+      ++ i;
+    }
+    else
+    {
+      fprintf ( output_fp, "unknown arg |%s|", argv[i] );
+    }
+  }
+
+
+  fprintf ( output_fp, "host            |%s|\n",        host );
+  fprintf ( output_fp, "port            |%s|\n",        port );
+  fprintf ( output_fp, "messages        %" PRId64 "\n", messages );
+  fprintf ( output_fp, "message_length  %d\n",          message_length );
+  fprintf ( output_fp, "n_links         %d\n",          n_links );
+  fprintf ( output_fp, "host            |%s|\n",        host );
+
+  if ( n_links > max_links )
+  {
+    fprintf ( output_fp, "You can't have more than %d links.\n", max_links );
+    exit ( 1 );
+  }
 
   pn_driver_t     * driver;
   pn_connector_t  * connector;
   pn_connector_t  * driver_connector;
   pn_connection_t * connection;
   pn_collector_t  * collector;
-  pn_link_t       * links [ n_links ];
+  pn_link_t       * links [ max_links ];
   pn_session_t    * session;
   pn_event_t      * event;
   pn_delivery_t   * delivery;
 
 
-  int const message_length = 100;
   char * message = (char *) malloc(message_length);
   memset ( message, 13, message_length );
+
+
 
   /*----------------------------------------------------
     Get everything set up.
@@ -219,7 +279,7 @@ main ( )
     Start timing here.  The receiver will print out a similar
     timestamp when he receives the final message.
   -----------------------------------------------------------*/
-  fprintf ( stderr, "psend start: sending %llu messages.\n", to_send_count );
+  fprintf ( output_fp, "psend start: sending %llu messages.\n", messages );
 
 
   while ( 1 )
@@ -237,19 +297,20 @@ main ( )
       {
         ++ event_count;
         pn_event_type_t event_type = pn_event_type ( event );
-        //fprintf ( stderr, "event: %s\n", pn_event_type_name ( event_type ) );
+        //fprintf ( output_fp, "event: %s\n", pn_event_type_name ( event_type ) );
 
         switch ( event_type )
         {
           case PN_LINK_FLOW:
           {
-            if ( delivery_count < to_send_count )
+            if ( delivery_count < messages )
             {
               pn_link_t * link = pn_event_link ( event );
               int credit = pn_link_credit ( link );
 
               while ( credit > 0 )
               {
+                char str [ 100 ];
                 sprintf ( str, "%x", delivery_count ++ );
                 delivery = pn_delivery ( link, pn_dtag(str, strlen(str)) );
                 pn_link_send ( link, message, message_length );
@@ -258,9 +319,9 @@ main ( )
                 credit = pn_link_credit ( link );
               }
               
-              if ( delivery_count >= to_send_count )
+              if ( delivery_count >= messages )
               {
-                fprintf ( stderr, 
+                fprintf ( output_fp, 
                           "I have sent all %d messages.\n" ,
                           delivery_count
                         );
@@ -283,7 +344,7 @@ main ( )
 
           default:
             /*
-            fprintf ( stderr,
+            fprintf ( output_fp,
                       "precv unhandled event: %s\n",
                       pn_event_type_name(event_type)
                     );
