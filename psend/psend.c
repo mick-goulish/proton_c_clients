@@ -159,6 +159,7 @@ main ( )
 
   uint64_t to_send_count = 1000 * 1000 * 1000;  
   to_send_count *= 10;
+  to_send_count = 2000000;
 
   uint64_t  delivery_count = 0;
   int  size           = 32;
@@ -213,6 +214,11 @@ main ( )
   }
 
 
+  /*-----------------------------------------------------------
+    For my speed tests, I do not want to count setup time.
+    Start timing here.  The receiver will print out a similar
+    timestamp when he receives the final message.
+  -----------------------------------------------------------*/
   fprintf ( stderr, "psend start: sending %llu messages.\n", to_send_count );
 
 
@@ -237,31 +243,53 @@ main ( )
         {
           case PN_LINK_FLOW:
           {
-            pn_link_t * link = pn_event_link ( event );
-            int credit = pn_link_credit ( link );
-
-            while ( credit > 0 )
+            if ( delivery_count < to_send_count )
             {
-              sprintf ( str, "%x", delivery_count ++ );
-              delivery = pn_delivery ( link, pn_dtag(str, strlen(str)) );
-              // Must do the settle *after* the send! 
-              // Or you'll be shooting blanks.
-              pn_link_send ( link, message, message_length );
-              pn_delivery_settle ( delivery );
-              pn_link_advance ( link );
-              credit = pn_link_credit ( link );
+              pn_link_t * link = pn_event_link ( event );
+              int credit = pn_link_credit ( link );
 
+              while ( credit > 0 )
+              {
+                sprintf ( str, "%x", delivery_count ++ );
+                delivery = pn_delivery ( link, pn_dtag(str, strlen(str)) );
+                pn_link_send ( link, message, message_length );
+                pn_delivery_settle ( delivery );
+                pn_link_advance ( link );
+                credit = pn_link_credit ( link );
+              }
+              
               if ( delivery_count >= to_send_count )
               {
-                fprintf ( stdout, "stop_time: %.3lf\n", get_time() );
-                goto all_done;
+                fprintf ( stderr, 
+                          "I have sent all %d messages.\n" ,
+                          delivery_count
+                        );
+                // goto all_done;
               }
             }
           }
           break;
 
-          default:
+
+          case PN_TRANSPORT:
+            // I don't know what this means here, either.
           break;
+
+
+          case PN_TRANSPORT_TAIL_CLOSED:
+            goto all_done;
+          break;
+
+
+          default:
+            /*
+            fprintf ( stderr,
+                      "precv unhandled event: %s\n",
+                      pn_event_type_name(event_type)
+                    );
+            */
+          break;
+
         }
 
         pn_collector_pop ( collector );
@@ -271,6 +299,14 @@ main ( )
   }
 
   all_done:
+
+  for ( int i = 0; i < n_links; ++ i )
+  {
+    pn_link_close ( links[i] );
+  }
+
+  pn_session_close ( session );
+  pn_connection_close ( connection );
 
   return 0;
 }

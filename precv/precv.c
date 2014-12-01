@@ -124,8 +124,8 @@ main (  )
   char const * host = "10.16.44.238";
   char const * port = "5672";
 
-  int const initial_flow   = 600;
-  int const flow_increment = 300;
+  int const initial_flow   = 400;
+  int const flow_increment = 200;
 
 
 
@@ -141,12 +141,14 @@ main (  )
   pn_link_t       * link;
   pn_delivery_t   * delivery;
 
-  int const report_frequency = 5000000;
+  int const report_frequency = 200000;
 
   uint64_t delivery_count      = 0,
            expected_deliveries = 1000 * 1000 * 1000;
 
   expected_deliveries *= 10;
+  // TEMP
+  expected_deliveries = 2000000;
 
 
   double last_time,
@@ -161,8 +163,8 @@ main (  )
   FILE * output_fp;
 
 
-  output_fp = fopen ( "./precv.output", "w" );
-  //output_fp = stderr;
+  //output_fp = fopen ( "./precv.output", "w" );
+  output_fp = stderr;
 
 
   driver = pn_driver ( );
@@ -217,6 +219,7 @@ main (  )
         pn_event_type_t event_type = pn_event_type ( event );
         //fprintf ( stderr, "MDEBUG precv event: %s\n", pn_event_type_name(event_type));
 
+
         switch ( event_type )
         {
           case PN_CONNECTION_REMOTE_OPEN:
@@ -264,7 +267,6 @@ main (  )
                 /*
                 if ( ! (delivery_count % report_frequency) )
                 {
-                  char incoming [ 1000 ];
                   pn_link_t * delivery_link = pn_delivery_link ( delivery );
                   int received_bytes = pn_delivery_pending ( delivery );
                   pn_link_recv ( delivery_link, incoming, 1000 );
@@ -280,7 +282,8 @@ main (  )
 
                 if ( delivery_count >= expected_deliveries )
                 {
-                  fprintf ( output_fp, "Got %d deliveries.\n", delivery_count );
+                  fprintf ( output_fp, "Got all %d deliveries.\n", delivery_count );
+                  fprintf ( stderr, "MDEBUG goto all_done\n" );
                   goto all_done;
                 }
 
@@ -308,7 +311,17 @@ main (  )
           break;
 
 
+          case PN_TRANSPORT:
+            // not sure why I would care...
+          break;
+
+
           default:
+            fprintf ( stderr, 
+                      "MDEBUG precv unhandled event: %s\n", 
+                      pn_event_type_name(event_type)
+                    );
+
           break;
         }
 
@@ -320,7 +333,9 @@ main (  )
 
 
 all_done:
-  
+  pn_session_close ( session );
+  pn_connection_close ( connection );
+  fprintf ( stderr, "MDEBUG precv finished.\n" );
   fclose ( output_fp );
   return 0;
 }
