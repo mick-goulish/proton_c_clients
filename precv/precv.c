@@ -105,7 +105,7 @@ print_timestamp_like_a_normal_person ( FILE * fp )
             timeinfo->tm_sec
           );
 
-  fprintf ( fp, "|%s|\n", time_string );
+  fprintf ( fp, "timestamp %s\n", time_string );
 }
 
 
@@ -121,13 +121,14 @@ main ( int argc, char ** argv  )
 
   char host [1000];
   char port [1000];
+  char output_file_name[1000];
 
-  int const initial_flow   = 400;
-  int const flow_increment = 20;
+  int initial_flow   = 400;
+  int flow_increment = 200;
 
-  int const report_frequency  = 200000;
-  int64_t expected_deliveries = 2000000,
-          delivery_count      = 0;
+  int       report_frequency  = 200000;
+  int64_t   messages          = 2000000,
+            delivery_count    = 0;
 
   strcpy ( host, "10.16.44.238" );
   strcpy ( port, "5672" );
@@ -153,8 +154,6 @@ main ( int argc, char ** argv  )
   int    message_data_capacity = MY_BUF_SIZE;
 
   FILE * output_fp;
-  //output_fp = fopen ( "./precv.output", "w" );
-  output_fp = stderr;
 
 
   for ( int i = 1; i < argc; ++ i )
@@ -173,13 +172,39 @@ main ( int argc, char ** argv  )
     else
     if ( ! strcmp ( "--messages", argv[i] ) )
     {
-      sscanf ( argv [ i+1 ], "%" SCNd64 , & expected_deliveries );
+      sscanf ( argv [ i+1 ], "%" SCNd64 , & messages );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "--output", argv[i] ) )
+    {
+      if ( ! strcmp ( "stderr", argv[i+1] ) )
+      {
+        output_fp = stderr;
+        strcpy ( output_file_name, "stderr");
+      }
+      else
+      if ( ! strcmp ( "stdout", argv[i+1] ) )
+      {
+        output_fp = stdout;
+        strcpy ( output_file_name, "stdout");
+      }
+      else
+      {
+        output_fp = fopen ( argv[i+1], "w" );
+        strcpy ( output_file_name, argv[i+1] );
+        if ( ! output_fp )
+        {
+          fprintf ( stderr, "Can't open |%s| for writing.\n", argv[i+1] );
+          exit ( 1 );
+        }
+      }
       ++ i;
     }
     else
     if ( ! strcmp ( "--report_frequency", argv[i] ) )
     {
-      sscanf ( argv [ i+1 ], "%d", & report_frequency );
+      report_frequency = atoi ( argv[i+1] );
       ++ i;
     }
     else
@@ -196,18 +221,18 @@ main ( int argc, char ** argv  )
     }
     else
     {
-      fprintf ( output_fp, "unknown arg |%s|", argv[i] );
+      fprintf ( output_fp, "unknown arg |%s|\n", argv[i] );
+      exit ( 1 );
     }
   }
 
-
-  fprintf ( output_fp, "host                |%s|\n", host );
-  fprintf ( output_fp, "port                |%s|\n", port );
-  fprintf ( output_fp, "expected_deliveries %" PRId64 "\n", expected_deliveries );
-  fprintf ( output_fp, "report_frequency    %d\n", report_frequency );
-  fprintf ( output_fp, "initial_flow        %d\n", initial_flow );
-  fprintf ( output_fp, "flow_increment      %d\n", flow_increment );
-
+  fprintf ( output_fp, "host                %s\n",          host );
+  fprintf ( output_fp, "port                %s\n",          port );
+  fprintf ( output_fp, "messages            %" PRId64 "\n", messages );
+  fprintf ( output_fp, "report_frequency    %d\n",          report_frequency );
+  fprintf ( output_fp, "initial_flow        %d\n",          initial_flow );
+  fprintf ( output_fp, "flow_increment      %d\n",          flow_increment );
+  fprintf ( output_fp, "output              %s\n",          output_file_name );
 
   driver = pn_driver ( );
 
@@ -217,6 +242,7 @@ main ( int argc, char ** argv  )
     exit ( 1 );
   }
 
+  fprintf ( output_fp, "\nprecv ready...\n\n" );
   while ( 1 )
   {
     pn_driver_wait ( driver, -1 );
@@ -310,7 +336,7 @@ main ( int argc, char ** argv  )
                   pn_link_t * delivery_link = pn_delivery_link ( delivery );
                   int received_bytes = pn_delivery_pending ( delivery );
                   pn_link_recv ( delivery_link, incoming, 1000 );
-                  fprintf ( output_fp, "MDEBUG received bytes: %d\n", received_bytes );
+                  fprintf ( output_fp, "received bytes: %d\n", received_bytes );
                 }
                 */
 
@@ -320,14 +346,17 @@ main ( int argc, char ** argv  )
 
                 int credit = pn_link_credit ( link );
 
-                if ( delivery_count >= expected_deliveries )
+                if ( delivery_count >= messages )
                 {
-                  fprintf ( output_fp, "Got all %d deliveries.\n", delivery_count );
-                  fprintf ( output_fp, "MDEBUG goto all_done\n" );
+                  fprintf ( output_fp, "precv_stop %.3lf\n", get_time() );
                   goto all_done;
                 }
 
-                if ( ! (delivery_count % report_frequency) )
+                // Make a report frequency of zero shut down reporting.
+                if ( report_frequency
+                     &&
+                     (! (delivery_count % report_frequency))
+                   )
                 {
                   this_time = get_time();
                   time_diff = this_time - last_time;

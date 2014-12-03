@@ -68,26 +68,6 @@ print_timestamp ( FILE * fp, char const * label )
 
 
 
-void
-print_data ( FILE * fp, char const * str, int len )
-{
-  fputc ( '|', fp );
-  int i;
-  for ( i = 0; i < len; ++ i )
-  {
-    unsigned char c = * str ++;
-    if ( isprint(c) )
-      fputc ( c, fp );
-    else
-      fprintf ( fp, "\\0x%.2X", c );
-  }
-  fputs ( "|\n", fp );
-}
-
-
-
-
-
 bool
 get_sasl_over_with ( pn_connector_t * driver_connector )
 {
@@ -130,6 +110,9 @@ get_sasl_over_with ( pn_connector_t * driver_connector )
 }
 
 
+
+
+
 static 
 double
 get_time ( )
@@ -158,6 +141,8 @@ main ( int argc, char ** argv )
   char addr [ 1000 ];
   char host [ 1000 ];
   char port [ 1000 ];
+  char output_file_name[1000];
+
 
   uint64_t messages       = 2000000,
            delivery_count = 0;
@@ -175,8 +160,6 @@ main ( int argc, char ** argv )
   strcpy ( port, "5672" );
 
   FILE * output_fp;
-  //output_fp = fopen ( "./psend.output", "w" );
-  output_fp = stderr;
 
 
   for ( int i = 1; i < argc; ++ i )
@@ -210,19 +193,45 @@ main ( int argc, char ** argv )
       sscanf ( argv [ i+1 ], "%d", & n_links );
       ++ i;
     }
+    if ( ! strcmp ( "--output", argv[i] ) )
+    {
+      if ( ! strcmp ( "stderr", argv[i+1] ) )
+      {
+        output_fp = stderr;
+        strcpy ( output_file_name, "stderr");
+      }
+      else
+      if ( ! strcmp ( "stdout", argv[i+1] ) )
+      {
+        output_fp = stdout;
+        strcpy ( output_file_name, "stdout");
+      }
+      else
+      {
+        output_fp = fopen ( argv[i+1], "w" );
+        strcpy ( output_file_name, argv[i+1] );
+        if ( ! output_fp )
+        {
+          fprintf ( stderr, "Can't open |%s| for writing.\n", argv[i+1] );
+          exit ( 1 );
+        }
+      }
+      ++ i;
+    }
     else
     {
-      fprintf ( output_fp, "unknown arg |%s|", argv[i] );
+      fprintf ( output_fp, "unknown arg %s", argv[i] );
     }
   }
 
 
-  fprintf ( output_fp, "host            |%s|\n",        host );
-  fprintf ( output_fp, "port            |%s|\n",        port );
+  fprintf ( output_fp, "host            %s\n",          host );
+  fprintf ( output_fp, "port            %s\n",          port );
   fprintf ( output_fp, "messages        %" PRId64 "\n", messages );
   fprintf ( output_fp, "message_length  %d\n",          message_length );
   fprintf ( output_fp, "n_links         %d\n",          n_links );
-  fprintf ( output_fp, "host            |%s|\n",        host );
+  fprintf ( output_fp, "output          %s\n",          output_file_name );
+
 
   if ( n_links > max_links )
   {
@@ -243,8 +252,6 @@ main ( int argc, char ** argv )
 
   char * message = (char *) malloc(message_length);
   memset ( message, 13, message_length );
-
-
 
   /*----------------------------------------------------
     Get everything set up.
@@ -273,14 +280,15 @@ main ( int argc, char ** argv )
     pn_link_open ( links[i] );
   }
 
-
   /*-----------------------------------------------------------
     For my speed tests, I do not want to count setup time.
     Start timing here.  The receiver will print out a similar
     timestamp when he receives the final message.
   -----------------------------------------------------------*/
-  fprintf ( output_fp, "psend start: sending %llu messages.\n", messages );
+  fprintf ( output_fp, "psend: sending %llu messages.\n", messages );
 
+  // Just before we start sending, print the start timestamp.
+  fprintf ( output_fp, "psend_start %.3lf\n", get_time() );
 
   while ( 1 )
   {
