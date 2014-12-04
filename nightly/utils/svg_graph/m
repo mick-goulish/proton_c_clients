@@ -1,0 +1,34 @@
+#! /bin/bash
+
+CC=gcc
+
+PROJECT=`pwd`
+PROJECT=${PROJECT##*/}
+echo Making $PROJECT =================================================
+
+FLAGS="-pedantic"
+DEFS=
+OPTO=-O3
+
+for file in *.c
+do
+  echo compiling $file --------------------------------------------
+  $CC                           \
+    $FLAGS                      \
+    $DEFS                       \
+    $OPTO                       \
+    -c                          \
+    $file
+done
+
+echo Linking ====================================================
+
+$CC                           \
+  -o $PROJECT                 \
+  $PROJECT.o                 
+
+rm *.o
+
+echo -e "Done ================================\n\n\n\n"
+
+

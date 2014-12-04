@@ -82,12 +82,17 @@ get_sasl_over_with ( pn_connector_t * driver_connector )
         return false;
         break;
 
+      /*
       case PN_SASL_CONF:
         pn_sasl_mechanisms ( sasl, "ANONYMOUS" );
         pn_sasl_client ( sasl );
         break;
+      */
 
       case PN_SASL_STEP:
+        pn_sasl_mechanisms ( sasl, "ANONYMOUS" );
+        pn_sasl_client ( sasl );
+
         if ( pn_sasl_pending(sasl) ) 
         {
           fprintf ( stderr, "challenge failed\n" );
