@@ -68,56 +68,6 @@ print_timestamp ( FILE * fp, char const * label )
 
 
 
-bool
-get_sasl_over_with ( pn_connector_t * driver_connector )
-{
-  pn_sasl_t * sasl = pn_connector_sasl ( driver_connector );
-
-  while ( pn_sasl_state(sasl) != PN_SASL_PASS ) 
-  {
-    pn_sasl_state_t state = pn_sasl_state ( sasl );
-    switch ( state ) 
-    {
-      case PN_SASL_IDLE:
-        return false;
-        break;
-
-      /*
-      case PN_SASL_CONF:
-        pn_sasl_mechanisms ( sasl, "ANONYMOUS" );
-        pn_sasl_client ( sasl );
-        break;
-      */
-
-      case PN_SASL_STEP:
-        pn_sasl_mechanisms ( sasl, "ANONYMOUS" );
-        pn_sasl_client ( sasl );
-
-        if ( pn_sasl_pending(sasl) ) 
-        {
-          fprintf ( stderr, "challenge failed\n" );
-          exit ( 1 );
-        }
-        break;
-
-      case PN_SASL_FAIL:
-        fprintf ( stderr, "authentication failed\n" );
-        exit ( 1 );
-        break;
-
-      case PN_SASL_PASS:
-        break;
-    }
-  }
-
-  pn_sasl_done ( sasl, PN_SASL_OK );
-  return true;
-}
-
-
-
-
-
 static 
 double
 get_time ( )
@@ -155,7 +105,6 @@ main ( int argc, char ** argv )
   int message_length = 100;
 
   bool done           = false;
-  bool sasl_done      = false;
   int  sent_count     = 0;
   int  n_links        = 5;
   int const max_links = 100;
@@ -265,7 +214,6 @@ main ( int argc, char ** argv )
   ----------------------------------------------------*/
   driver = pn_driver ( );
   connector = pn_connector ( driver, host, port, 0 );
-  bool result = get_sasl_over_with ( connector );
 
   connection = pn_connection();
   collector  = pn_collector  ( );

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
 #include <string.h>
 
@@ -431,47 +432,33 @@ svg ( datum_p data, int n_data, FILE * fp )
 
 
 #define MAX_FILES 10000
-int n_files = 0;
 char * file_names [ MAX_FILES ];
 
 
 
 
 
-void
-print_file_names ( )
-{
-  int i;
-
-  fprintf ( stdout, "-------------------------------------\n" );
-  for ( i = 0; i < n_files; ++ i )
-  {
-    fprintf ( stdout, "%s\n", file_names [ i ] );
-  }
-}
-
-
-
-
-
-void
+int
 get_file_names ( char const * dir_name )
 {
+  int n_files = 0;
   DIR * dir;
   struct dirent * file;
   char full_name[2000];
-
+  struct stat sb;
   dir = opendir (dir_name );
   while ( file = readdir ( dir ) )
   {
-    if ( file->d_type == DT_REG )
-    {
-      sprintf ( full_name, "%s/%s", dir_name, file->d_name );
-      file_names [ n_files ] = strdup ( full_name );
-      ++ n_files;
-    }
+     sprintf ( full_name, "%s/%s", dir_name, file->d_name );
+     if ( (stat(full_name, & sb) != -1) &&
+      S_ISREG(sb.st_mode) ) {
+        file_names [ n_files ] = strdup ( full_name );
+        if (++n_files == MAX_FILES)
+          break;
+     }
   }
   closedir ( dir );
+  return n_files;
 }
 
 
@@ -479,7 +466,7 @@ get_file_names ( char const * dir_name )
 
 
 void
-sort_file_names ( )
+sort_file_names ( int n_files )
 {
   int i;
   int sorted = 0;
@@ -520,8 +507,8 @@ main ( int argc, char ** argv )
   datum_t data [ MAX_DATA ];
   datum_p d;
 
-  get_file_names ( dir_name );
-  sort_file_names ( );
+  int n_files = get_file_names ( dir_name );
+  sort_file_names ( n_files );
 
   for ( i = 0, d = data; i < n_files; ++ i, ++ d )
   {

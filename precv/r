@@ -2,9 +2,9 @@
 
 ./precv                         \
   --host                0.0.0.0 \
-  --port                5801    \
-  --messages            5000000 \
-  --report_frequency    1000000 \
+  --port                5673    \
+  --messages            1000000 \
+  --report_frequency    100000  \
   --initial_flow        400     \
   --flow_increment      200     \
   --output              stderr

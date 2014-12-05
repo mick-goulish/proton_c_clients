@@ -40,19 +40,20 @@ PRECV=${NIGHTLY_ROOT}/../precv/precv
 STATS=${NIGHTLY_ROOT}/utils/stats/stats
 SVG=${NIGHTLY_ROOT}/utils/svg_graph/svg_graph
 
-N_TESTS=10
+N_TESTS=50
 DATE=`date +%Y_%m_%d`
 HOST=0.0.0.0
 PORT=5801
 N_MSGS=5000000
 MSG_LEN=100
 N_LINKS=5
-FREQ=1000000
+FREQ=0
 INIT_FLOW=400
 FLOW_INC=200
-RESULTS=./results
+RESULTS_FILE=./results
 PRECV_OUT=./precv.out
 PSEND_OUT=./psend.out
+TEST_RESULTS_DIR=./test_results
 
 
 
@@ -62,11 +63,15 @@ PSEND_OUT=./psend.out
 #  Let's Get Started !
 #=====================================================
 
-
-
 cd ${NIGHTLY_ROOT}
 
-rm -f ${RESULTS}
+rm -f ${RESULTS_FILE}
+
+if [ ! -e ${TEST_RESULTS_DIR} ]
+then
+  echo "making directory ${TEST_RESULTS_DIR}"
+  mkdir ${TEST_RESULTS_DIR}
+fi
 
 echo -n "grand start: " ; date
 
@@ -113,7 +118,7 @@ do
   TOTAL_TIME=`echo ${STOP_TIME} - ${START_TIME} | bc`
 
   echo "total time: ${TOTAL_TIME}"
-  echo ${TOTAL_TIME} >> ${RESULTS}
+  echo ${TOTAL_TIME} >> ${RESULTS_FILE}
 done
 echo -n "grand stop: " ; date
 
@@ -122,7 +127,7 @@ done_msg "$msg"
 
 STATS_FILE="statistics_${DATE}"
 start_msg "calculating statistics"
-${STATS} < ${RESULTS} > ${STATS_FILE}
+${STATS} < ${RESULTS_FILE} > ${STATS_FILE}
 done_msg
 
 MEAN=`cat ${STATS_FILE} | awk '{print $6}'`
