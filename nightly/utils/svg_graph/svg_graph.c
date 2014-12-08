@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <dirent.h>
+#include <sys/stat.h>
 #include <string.h>
 
 
@@ -26,6 +27,62 @@ double chart_width   = 1000,
        y_range       = 20.0,
        y_scalar,
        x_axis_y_offset = 100;
+
+
+
+
+void
+set_y_range ( char const * scale_type,
+              datum_p      data,
+              int          n_files
+            )
+{
+  int     i;
+  datum_p d;
+  double  max_val,
+          min_val,
+          range,
+          expando_range_delta,
+          high,
+          low;
+
+
+  max_val = 0;
+  min_val = 1000000;
+
+  for ( i = 0, d = data; i < n_files; ++ i, ++ d )
+  {
+    high = d->mean + d->sigma;
+    low  = d->mean - d->sigma;
+    
+    max_val = (high > max_val) ? high : max_val;
+    min_val = (low  < min_val) ? low  : min_val;
+  }
+
+  range = max_val - min_val;
+
+
+  if ( ! strcmp ( scale_type, "absolute" ) )
+  {
+    grand_min = 0;
+    expando_range_delta = 0.2 * max_val;
+    grand_max = max_val + expando_range_delta;
+  }
+  else
+  if ( ! strcmp ( scale_type, "relative" ) )
+  {
+    range = (range > 2) ? range : 2;
+    expando_range_delta = 2 * range;
+    grand_min = min_val - (expando_range_delta / 2);
+    grand_max = max_val + (expando_range_delta / 2);
+  }
+  else
+  {
+    fprintf ( stderr, "wtf?  svg sol!  ttfn!\n" );
+    exit ( 1 );
+  }
+}
+
 
 
 
@@ -252,7 +309,6 @@ svg ( datum_p data, int n_data, FILE * fp )
 
   /*
     draw horizontal lines from grand_min + 1 to grand_max.
-    These grand extremes are chose by hand, to make the graph look reasonable.
   */
 
   for ( graph_line = grand_min; graph_line <= grand_max;  graph_line += 1 )
@@ -445,17 +501,21 @@ get_file_names ( char const * dir_name )
   DIR * dir;
   struct dirent * file;
   char full_name[2000];
-  struct stat sb;
+  struct stat stat_buf;
+
   dir = opendir (dir_name );
   while ( file = readdir ( dir ) )
   {
-     sprintf ( full_name, "%s/%s", dir_name, file->d_name );
-     if ( (stat(full_name, & sb) != -1) &&
-      S_ISREG(sb.st_mode) ) {
-        file_names [ n_files ] = strdup ( full_name );
-        if (++n_files == MAX_FILES)
-          break;
-     }
+    sprintf ( full_name, "%s/%s", dir_name, file->d_name );
+    if ( (stat(full_name, & stat_buf) != -1) 
+         &&
+         S_ISREG ( stat_buf.st_mode ) 
+       ) 
+    {
+      file_names [ n_files ] = strdup ( full_name );
+      if ( ++n_files >= MAX_FILES )
+        break;
+    }
   }
   closedir ( dir );
   return n_files;
@@ -477,7 +537,7 @@ sort_file_names ( int n_files )
 
     for ( i = 0; i < n_files - 1; ++ i )
     {
-      if ( 0 < strcmp ( file_names[i], file_names[i+1] ) )
+      if ( 0 > strcmp ( file_names[i], file_names[i+1] ) )
       {
         char * temp = file_names[i];
         file_names[i] = file_names[i+1];
@@ -501,6 +561,7 @@ main ( int argc, char ** argv )
   int i;
   char const * dir_name         = (argc > 1) ? argv[1] : ".";
   char const * output_file_name = (argc > 2) ? argv[2] : "./nightly.svg";
+  char const * scale_type       = (argc > 3) ? argv[3] : "absolute";
   FILE * fp,
        * output_fp;
   int n_data = 0;
@@ -520,6 +581,7 @@ main ( int argc, char ** argv )
     ++ n_data;
   }
 
+  set_y_range ( scale_type, data, n_files );
   output_fp = fopen ( output_file_name, "w" );
   svg ( data, n_data, output_fp );
   fclose ( output_fp );
